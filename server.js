@@ -6,15 +6,14 @@ const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
 
-// ✅ Webhook route for Dropbox events
+// Webhook route
 app.use('/webhook', webhook);
 
-// ✅ Status page for testing
+// Status page
 app.get('/', (req, res) => {
   res.send(`
     <h1>🐾 Dropbox + Azure Vision Backend</h1>
     <p>Status: Running</p>
-    <p>Try uploading an image to Dropbox to trigger detection.</p>
   `);
 });
 
