@@ -1,9 +1,9 @@
 const axios = require('axios');
 
-const predictionKey = process.env.PREDICTION_KEY;
-const endpoint = process.env.CUSTOM_VISION_ENDPOINT;
-const projectId = process.env.CUSTOM_VISION_PROJECT_ID;
-const iterationName = process.env.CUSTOM_VISION_ITERATION_NAME;
+const predictionKey = process.env.AZURE_PREDICTION_KEY;
+const endpoint = process.env.AZURE_CUSTOM_VISION_ENDPOINT;
+const projectId = process.env.AZURE_CUSTOM_VISION_PROJECT_ID;
+const iterationName = process.env.AZURE_CUSTOM_VISION_ITERATION_NAME;
 
 const analyzeImage = async (imageUrl) => {
   const url = `${endpoint}customvision/v3.0/Prediction/${projectId}/classify/iterations/${iterationName}/url`;
