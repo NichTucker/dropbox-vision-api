@@ -31,7 +31,6 @@ router.post('/', async (req, res) => {
     console.log('🖼️ Retrieved Dropbox image URL:', imageUrl);
 
     const predictions = await analyzeImage(imageUrl);
-    console.log('🔍 Azure Vision predictions:', predictions);
 
     const honeyBadger = predictions.find(p => 
       p?.tagName?.toLowerCase?.() === 'honey badger'
