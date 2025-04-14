@@ -33,7 +33,9 @@ router.post('/', async (req, res) => {
     const predictions = await analyzeImage(imageUrl);
     console.log('🔍 Azure Vision predictions:', predictions);
 
-    const honeyBadger = predictions.find(p => p.tagName.toLowerCase() === 'honey badger');
+    const honeyBadger = predictions.find(p => 
+      p?.tagName?.toLowerCase?.() === 'honey badger'
+    );
     const confidence = honeyBadger?.probability ?? 0;
 
     if (honeyBadger && confidence > 0.8) {
