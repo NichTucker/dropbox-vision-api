@@ -31,14 +31,20 @@ router.post('/', async (req, res) => {
       const imageUrl = await getLatestImageUrl();
       console.log('🖼️ Retrieved Dropbox image URL:', imageUrl);
   
-      // Analyzing the image
-      const tags = await analyzeImage(imageUrl);
-      console.log('🔍 Azure Vision detected tags:', tags);
+      const predictions = await analyzeImage(imageUrl); // now returning full predictions
+      console.log('🔍 Azure Vision predictions:', predictions);
   
-      const found = tags.includes('honey badger');
-      console.log(found ? '🐾 Honey badger detected!' : '🚫 No honey badger detected');
+      const honeyBadger = predictions.find(p => p.tagName.toLowerCase() === 'honey badger');
+      const confidence = honeyBadger?.probability ?? 0;
   
-      res.status(200).send(found ? 'Honey badger detected' : 'No honey badger');
+      if (honeyBadger && confidence > 0.8) {
+        console.log(`🐾 HONEY BADGER DETECTED (confidence: ${confidence})`);
+        res.status(200).send('HONEY BADGER DETECTED');
+      } else {
+        console.log(`🚫 No honey badger detected (confidence: ${confidence})`);
+        res.status(200).send('No honey badger');
+      }
+      
     } catch (err) {
       console.error('❌ Webhook processing error:', err.stack || err.message);
       res.status(500).send('Error processing webhook');

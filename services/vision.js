@@ -1,6 +1,5 @@
 const axios = require('axios');
 
-// Replace these with your Azure Custom Vision values
 const predictionKey = '6ULvMjNoIIw6nJM3cOjC3FNdMPHeh61oL3vilUjpvHQ3hnXdTUeaJQQJ99BDAC5RqLJXJ3w3AAAIACOGIdjO';
 const endpoint = 'https://detecthoneybadger-prediction.cognitiveservices.azure.com/';
 const projectId = 'f3e284f8-777c-434d-a31d-284ca6646296';
