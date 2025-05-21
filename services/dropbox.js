@@ -26,11 +26,11 @@ async function refreshAccessToken() {
 
   cachedAccessToken = res.data.access_token;
   tokenExpiry = now + res.data.expires_in * 1000;
-  console.log('🔑 Refreshed Dropbox access token');
+  console.log('Refreshed Dropbox access token');
   return cachedAccessToken;
 }
 
-async function getLatestImageUrl() {
+async function getLatestImageUrls(count = 6) {
   const accessToken = await refreshAccessToken();
 
   const listRes = await axios.post(
@@ -45,24 +45,30 @@ async function getLatestImageUrl() {
   );
 
   const entries = listRes.data.entries
-    .filter(file => file['.tag'] === 'file' && /\.(jpg|jpeg|png)$/i.test(file.name));
+    .filter(file => file['.tag'] === 'file' && /\.(jpg|jpeg|png)$/i.test(file.name))
+    .sort((a, b) => new Date(b.client_modified) - new Date(a.client_modified));
 
-  if (!entries.length) throw new Error('No image files found in Dropbox');
+  const selected = entries.slice(0, count);
 
-  const latestFile = entries.sort((a, b) => new Date(b.client_modified) - new Date(a.client_modified))[0];
+  if (!selected.length) throw new Error('No image files found in Dropbox');
 
-  const linkRes = await axios.post(
-    'https://api.dropboxapi.com/2/files/get_temporary_link',
-    { path: latestFile.path_lower },
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
+  const imageUrls = [];
 
-  return linkRes.data.link;
+  for (const file of selected) {
+    const linkRes = await axios.post(
+      'https://api.dropboxapi.com/2/files/get_temporary_link',
+      { path: file.path_lower },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    imageUrls.push(linkRes.data.link);
+  }
+
+  return imageUrls;
 }
 
-module.exports = { getLatestImageUrl };
+module.exports = { getLatestImageUrls };
