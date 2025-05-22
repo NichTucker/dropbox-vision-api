@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getLatestImageUrl } = require('../services/dropbox');
+const { getLatestImageUrls } = require('../services/dropbox');
 const { analyzeImage } = require('../services/vision');
 
 // Webhook verification (GET)
@@ -27,22 +27,32 @@ router.post('/', async (req, res) => {
 
     console.log(`👤 Dropbox userId from webhook: ${userId}`);
 
-    const imageUrl = await getLatestImageUrl();
-    console.log('🖼️ Retrieved Dropbox image URL:', imageUrl);
+    const imageUrls = await getLatestImageUrls(6);
+    console.log(`🖼️ Retrieved ${imageUrls.length} image URLs`);
 
-    const predictions = await analyzeImage(imageUrl);
+    const results = await Promise.all(imageUrls.map(analyzeImage));
 
-    const honeyBadger = predictions.find(p =>
-      p?.tagName?.toLowerCase?.() === 'honey badger'
-    );
-    const confidence = honeyBadger?.probability ?? 0;
+    let highestConfidence = 0;
 
-    if (honeyBadger && confidence > 0.8) {
-      console.log(`🐾 HONEY BADGER DETECTED (confidence: ${confidence})`);
+    for (const predictions of results) {
+      const honeyBadger = predictions.find(p =>
+        p?.tagName?.toLowerCase?.() === 'honey badger'
+      );
+      if (honeyBadger && honeyBadger.probability > highestConfidence) {
+        highestConfidence = honeyBadger.probability;
+      }
+    }
+
+    if (highestConfidence > 0.55) {
+      console.log(`🐾 HONEY BADGER DETECTED (confidence: ${highestConfidence})`);
       res.status(200).send('HONEY BADGER DETECTED');
     } else {
-      console.log(`🚫 No honey badger detected (confidence: ${confidence})`);
+      console.log(`🚫 No honey badger detected (highest confidence: ${highestConfidence})`);
       res.status(200).send('No honey badger');
+    }
+
+    if (imageUrls.length < 6) {
+      console.warn(`⚠️ Expected 6 images but only got ${imageUrls.length}`);
     }
 
   } catch (err) {
