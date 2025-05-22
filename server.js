@@ -1,22 +1,18 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const webhook = require('./routes/webhook');
+const webhookRoute = require('./routes/webhook');
+const resultRoute = require('./routes/result').router;
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 app.use(bodyParser.json());
 
-// Webhook route
-app.use('/webhook', webhook);
-
-// Status page
-app.get('/', (req, res) => {
-  res.send(`
-    <h1>🐾 Dropbox + Azure Vision Backend</h1>
-    <p>Status: Running</p>
-  `);
-});
+// Routes
+app.use('/webhook', webhookRoute);
+app.use('/result', resultRoute);
 
 app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
+  console.log('     ==> Your service is live 🎉');
 });
