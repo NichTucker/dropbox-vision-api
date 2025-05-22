@@ -26,7 +26,7 @@ async function refreshAccessToken() {
 
   cachedAccessToken = res.data.access_token;
   tokenExpiry = now + res.data.expires_in * 1000;
-  console.log('🔑 Refreshed Dropbox access token');
+  console.log('Refreshed Dropbox access token');
   return cachedAccessToken;
 }
 
