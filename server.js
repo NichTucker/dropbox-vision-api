@@ -13,6 +13,6 @@ app.use('/webhook', webhookRoute);
 app.use('/result', resultRoute);
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
   console.log('     ==> Your service is live 🎉');
 });

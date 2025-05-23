@@ -1,20 +1,22 @@
 const express = require('express');
 const router = express.Router();
 
-let lastResult = {
-  confidence: 0,
-  timestamp: 0
-};
+const results = {}; // Stores results per sessionId
 
-function updateResult(confidence) {
-  lastResult = {
+function updateResult(sessionId, confidence) {
+  results[sessionId] = {
     confidence,
     timestamp: Date.now()
   };
+  console.log(`Stored result for session '${sessionId}'`);
 }
 
 router.get('/', (req, res) => {
-  res.json(lastResult);
+  const sessionId = req.query.session;
+  if (!sessionId || !results[sessionId]) {
+    return res.status(404).json({ error: 'Result not found for this session' });
+  }
+  res.json(results[sessionId]);
 });
 
 module.exports = { router, updateResult };
