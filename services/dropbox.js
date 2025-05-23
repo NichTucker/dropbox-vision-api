@@ -30,7 +30,8 @@ async function refreshAccessToken() {
   return cachedAccessToken;
 }
 
-async function getLatestImageUrls(count = 6) {
+// Updated to return filenames alongside links
+async function getLatestImageInfos(count = 6) {
   const accessToken = await refreshAccessToken();
 
   const listRes = await axios.post(
@@ -52,7 +53,7 @@ async function getLatestImageUrls(count = 6) {
 
   if (!selected.length) throw new Error('No image files found in Dropbox');
 
-  const imageUrls = [];
+  const imageInfos = [];
 
   for (const file of selected) {
     const linkRes = await axios.post(
@@ -65,10 +66,13 @@ async function getLatestImageUrls(count = 6) {
         },
       }
     );
-    imageUrls.push(linkRes.data.link);
+    imageInfos.push({
+      link: linkRes.data.link,
+      name: file.name
+    });
   }
 
-  return imageUrls;
+  return imageInfos;
 }
 
-module.exports = { getLatestImageUrls };
+module.exports = { getLatestImageInfos };
