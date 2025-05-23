@@ -31,8 +31,10 @@ router.post('/', async (req, res) => {
     const imageUrls = await getLatestImageUrls(2);
     console.log(`Retrieved ${imageUrls.length} image URLs`);
 
-    const sessionMatch = imageUrls[0].match(/\/([^/]+)_image/);
-    const sessionId = sessionMatch ? sessionMatch[1] : `fallback_${Date.now()}`;
+    const sessionMatch = imageUrls[0].match(/\/([^/]+_image_\d+)\.jpg/);
+    const rawId = sessionMatch ? sessionMatch[1] : `fallback_${Date.now()}`;
+    // Extract everything up to last "_image_XXX"
+    const sessionId = rawId.replace(/_image_\d+$/, "");
     console.log(`Using sessionId: ${sessionId}`);
 
     const results = await Promise.all(imageUrls.map(async (url) => {
