@@ -4,7 +4,6 @@ const { getLatestImageInfos } = require('../services/dropbox');
 const { analyzeImage } = require('../services/vision');
 const { updateResult } = require('./result');
 
-// Track processed sessions
 const processedSessions = new Set();
 
 router.get('/', (req, res) => {
@@ -29,53 +28,51 @@ router.post('/', async (req, res) => {
 
     console.log(`Dropbox userId from webhook: ${userId}`);
 
-    const imageInfos = await getLatestImageInfos(2);
-    console.log(`Retrieved ${imageInfos.length} image files`);
+    let attempts = 0;
+    const maxAttempts = 30;
+    const delayMs = 500;
 
-    const firstName = imageInfos[0].name;
-    const sessionMatch = firstName.match(/^(session_\d{8}_\d{6})_image_\d+\.jpg$/);
-    const sessionId = sessionMatch ? sessionMatch[1] : `fallback_${Date.now()}`;
-    console.log(`Using sessionId: ${sessionId}`);
+    while (attempts < maxAttempts) {
+      const imageInfos = await getLatestImageInfos(2);
+      const firstName = imageInfos[0].name;
+      const sessionMatch = firstName.match(/^(session_\d{8}_\d{6})_image_\d+\.jpg$/);
+      const sessionId = sessionMatch ? sessionMatch[1] : `fallback_${Date.now()}`;
 
-    if (processedSessions.has(sessionId)) {
-      console.log(`Session ${sessionId} already processed.`);
-      return res.status(200).send('Session already processed');
-    }
+      if (!processedSessions.has(sessionId)) {
+        processedSessions.add(sessionId);
 
-    processedSessions.add(sessionId);
+        const results = await Promise.all(imageInfos.map(info => analyzeImage(info.link)));
 
-    const results = await Promise.all(imageInfos.map(async (info) => {
-      console.log(`Sending image to Azure Custom Vision: ${info.link}`);
-      const predictions = await analyzeImage(info.link);
-      console.log('Full Azure response:', JSON.stringify(predictions, null, 2));
-      return predictions;
-    }));
+        let highestConfidence = 0;
 
-    let highestConfidence = 0;
+        for (const predictions of results) {
+          const honeyBadger = predictions.find(p =>
+            p?.tagName?.toLowerCase?.() === 'honey badger'
+          );
+          if (honeyBadger && honeyBadger.probability > highestConfidence) {
+            highestConfidence = honeyBadger.probability;
+          }
+        }
 
-    for (const predictions of results) {
-      const honeyBadger = predictions.find(p =>
-        p?.tagName?.toLowerCase?.() === 'honey badger'
-      );
-      if (honeyBadger && honeyBadger.probability > highestConfidence) {
-        highestConfidence = honeyBadger.probability;
+        updateResult(sessionId, highestConfidence);
+        console.log(`Updated result for ${sessionId} with confidence ${highestConfidence}`);
+
+        if (highestConfidence > 0.55) {
+          console.log(`HONEY BADGER DETECTED (confidence: ${highestConfidence})`);
+          res.status(200).send('HONEY BADGER DETECTED');
+        } else {
+          console.log(`No honey badger detected (highest confidence: ${highestConfidence})`);
+          res.status(200).send('No honey badger');
+        }
+        return;
       }
+
+      console.log(`Session ${sessionId} already processed. Polling again shortly...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+      attempts++;
     }
 
-    updateResult(sessionId, highestConfidence);
-    console.log(`Updated result for ${sessionId} with confidence ${highestConfidence}`);
-
-    if (highestConfidence > 0.55) {
-      console.log(`HONEY BADGER DETECTED (confidence: ${highestConfidence})`);
-      res.status(200).send('HONEY BADGER DETECTED');
-    } else {
-      console.log(`No honey badger detected (highest confidence: ${highestConfidence})`);
-      res.status(200).send('No honey badger');
-    }
-
-    if (imageInfos.length < 2) {
-      console.warn(`Expected 2 images but only got ${imageInfos.length}`);
-    }
+    res.status(200).send('No new images found after polling');
 
   } catch (err) {
     console.error('Webhook processing error:', err.stack || err.message);
