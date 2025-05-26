@@ -28,18 +28,10 @@ router.post('/', async (req, res) => {
 
     console.log(`Dropbox userId from webhook: ${userId}`);
 
-<<<<<<< HEAD
     const maxAttempts = 3;
     const delayMs = 2000;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-=======
-    let attempts = 0;
-    const maxAttempts = 30;
-    const delayMs = 500;
-
-    while (attempts < maxAttempts) {
->>>>>>> c0b4e3b7374140a471ab291b6e5795e7a9b24e5c
       const imageInfos = await getLatestImageInfos(2);
       const firstName = imageInfos[0].name;
       const sessionMatch = firstName.match(/^(session_\d{8}_\d{6})_image_\d+\.jpg$/);
@@ -74,14 +66,8 @@ router.post('/', async (req, res) => {
         return;
       }
 
-<<<<<<< HEAD
       console.log(`Session ${sessionId} already processed. Attempt ${attempt + 1}/${maxAttempts}`);
       await new Promise(resolve => setTimeout(resolve, delayMs));
-=======
-      console.log(`Session ${sessionId} already processed. Polling again shortly...`);
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-      attempts++;
->>>>>>> c0b4e3b7374140a471ab291b6e5795e7a9b24e5c
     }
 
     res.status(200).send('No new images found after polling');
