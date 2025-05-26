@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { getLatestImageInfos } = require('../services/dropbox'); // UPDATED import
+const { getLatestImageInfos } = require('../services/dropbox');
 const { analyzeImage } = require('../services/vision');
 const { updateResult } = require('./result');
 
-// Webhook verification (GET)
+// Track processed sessions
+const processedSessions = new Set();
+
 router.get('/', (req, res) => {
   const challenge = req.query.challenge;
   if (challenge) {
@@ -15,7 +17,6 @@ router.get('/', (req, res) => {
   }
 });
 
-// Webhook handler (POST)
 router.post('/', async (req, res) => {
   console.log('Received Dropbox Webhook Payload:', JSON.stringify(req.body, null, 2));
 
@@ -31,10 +32,17 @@ router.post('/', async (req, res) => {
     const imageInfos = await getLatestImageInfos(2);
     console.log(`Retrieved ${imageInfos.length} image files`);
 
-    const firstName = imageInfos[0].name; // e.g. session_20250523_113156_image_001.jpg
+    const firstName = imageInfos[0].name;
     const sessionMatch = firstName.match(/^(session_\d{8}_\d{6})_image_\d+\.jpg$/);
     const sessionId = sessionMatch ? sessionMatch[1] : `fallback_${Date.now()}`;
     console.log(`Using sessionId: ${sessionId}`);
+
+    if (processedSessions.has(sessionId)) {
+      console.log(`Session ${sessionId} already processed.`);
+      return res.status(200).send('Session already processed');
+    }
+
+    processedSessions.add(sessionId);
 
     const results = await Promise.all(imageInfos.map(async (info) => {
       console.log(`Sending image to Azure Custom Vision: ${info.link}`);
