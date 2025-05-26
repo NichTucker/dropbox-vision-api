@@ -1,3 +1,21 @@
+const express = require('express');
+const router = express.Router();
+const { getLatestImageInfos } = require('../services/dropbox');
+const { analyzeImage } = require('../services/vision');
+const { updateResult } = require('./result');
+
+const processedSessions = new Set();
+
+router.get('/', (req, res) => {
+  const challenge = req.query.challenge;
+  if (challenge) {
+    console.log('Responding to Dropbox webhook challenge:', challenge);
+    res.status(200).send(challenge);
+  } else {
+    res.status(400).send('No challenge parameter');
+  }
+});
+
 router.post('/', async (req, res) => {
   console.log('Received Dropbox Webhook Payload:', JSON.stringify(req.body, null, 2));
 
@@ -14,7 +32,7 @@ router.post('/', async (req, res) => {
     const delayMs = 2000;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const imageInfos = await getLatestImageInfos(4); // fetch more to group properly
+      const imageInfos = await getLatestImageInfos(4); // Get more images to group properly
 
       // Group images by session ID
       const sessionMap = {};
@@ -26,7 +44,7 @@ router.post('/', async (req, res) => {
         sessionMap[sessionId].push(info);
       }
 
-      // Try to find and process a new session
+      // Try to process the first unprocessed session
       for (const [sessionId, images] of Object.entries(sessionMap)) {
         if (processedSessions.has(sessionId)) {
           console.log(`Session ${sessionId} already processed.`);
@@ -57,7 +75,6 @@ router.post('/', async (req, res) => {
           console.log(`No honey badger detected (highest confidence: ${highestConfidence})`);
           res.status(200).send('No honey badger');
         }
-
         return;
       }
 
@@ -72,3 +89,5 @@ router.post('/', async (req, res) => {
     res.status(500).send('Error processing webhook');
   }
 });
+
+module.exports = router;
