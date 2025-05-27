@@ -32,9 +32,10 @@ router.post('/', async (req, res) => {
     const delayMs = 2000;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const imageInfos = await getLatestImageInfos(4); // Get more images to group properly
+      let imageInfos = await getLatestImageInfos(10); // Get more in case of delay
+      imageInfos = imageInfos.sort((a, b) => a.name.localeCompare(b.name));
 
-      // Group images by session ID
+      // Group by session ID
       const sessionMap = {};
       for (const info of imageInfos) {
         const match = info.name.match(/^(session_\d{8}_\d{6})_image_\d+\.jpg$/);
@@ -44,13 +45,15 @@ router.post('/', async (req, res) => {
         sessionMap[sessionId].push(info);
       }
 
-      // Try to process the first unprocessed session
-      for (const [sessionId, images] of Object.entries(sessionMap)) {
+      // Pick the most recent unprocessed session
+      const sessionIds = Object.keys(sessionMap).sort().reverse(); // newest first
+      for (const sessionId of sessionIds) {
         if (processedSessions.has(sessionId)) {
           console.log(`Session ${sessionId} already processed.`);
           continue;
         }
 
+        const images = sessionMap[sessionId];
         processedSessions.add(sessionId);
 
         const results = await Promise.all(images.map(info => analyzeImage(info.link)));
@@ -62,6 +65,7 @@ router.post('/', async (req, res) => {
           );
           if (honeyBadger && honeyBadger.probability > highestConfidence) {
             highestConfidence = honeyBadger.probability;
+            console.log(`Best confidence came from image with score: ${honeyBadger.probability}`);
           }
         }
 
@@ -70,12 +74,11 @@ router.post('/', async (req, res) => {
 
         if (highestConfidence > 0.55) {
           console.log(`HONEY BADGER DETECTED (confidence: ${highestConfidence})`);
-          res.status(200).send('HONEY BADGER DETECTED');
+          return res.status(200).send('HONEY BADGER DETECTED');
         } else {
-          console.log(`No honey badger detected (highest confidence: ${highestConfidence})`);
-          res.status(200).send('No honey badger');
+          console.log(`No honey badger detected (confidence: ${highestConfidence})`);
+          return res.status(200).send('No honey badger');
         }
-        return;
       }
 
       console.log(`No new sessions found. Waiting (${attempt + 1}/${maxAttempts})...`);
